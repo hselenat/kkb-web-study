@@ -1,0 +1,28 @@
+<div id="app"></div>
+<script src="kvue2.js"></script>
+<script>
+  const app = new KVue({
+    el: "#app",
+    data: {
+      counter: 1
+    },
+    render(h) {
+        // const p = document.createElement('p');
+        // p.textContent = this.counter;
+        // return p
+        // 返回vnode，只有标签和文本
+        // return h('p', null, this.counter + '');
+        // 返回vnode，含有子节点，递归操作
+        return h('p', 
+                null, 
+                [
+                    h('h1', null, this.counter + ''),
+                    h('span', null, this.counter * 2 + ''),
+                ]
+            );
+    }
+  });
+  setInterval(() => {
+    app.counter++;
+  }, 1000);
+</script>
