@@ -1,0 +1,92 @@
+
+<div id="app"></div>
+
+<script>
+    // 实现createAppAPI
+    // 接收render函数
+    // 核心目标是返回一个createApp方法
+    const createAppAPI = (render) => {
+        return function createApp(rootComponent) { // Vue.createApp({ // 根组件选项，即rootComponent }) 
+            // 创建app对象
+            const app = {
+                // 挂载方法，提供给用户调用，传一个rootContainer
+                mount(rootContainer) {
+                    // 创建根虚拟节点vnode
+                    const vnode = {
+                        tag: rootComponent // 初始化patch时，tag是根组件
+                    }
+                    // 渲染
+                    render(vnode, rootContainer) // 创建vnode，挂载到rootContainer
+                }
+            }
+            return app // 返回出去给mount调用
+        }
+    }
+    // vue3只管用，不关心怎么用：控制反转，依赖注入，目的是为了方便扩展，可复用
+    // 工厂方法：创建renderer
+    // options【querySelector、createElement、insert等（用什么传什么）】是平台特有的一些操作，属性和节点的操作
+    const createRenderer = ({querySelector, createElement, insert}) => {
+        // 创建render方法
+        const render = (vnode, container) => {
+            // 初始化时vnode不存在，为null
+            patch(container._vnode || null, vnode, container)
+            // 初始化后保存_vnode
+            container._vnode = vnode
+        }
+        // 实现patch：目的是为了比较节点后，挂载到container选择器中
+        const patch = (n1, n2, container) => {
+            // 获得根组件配置
+            const rootComponent = n2.tag
+            const ctx = rootComponent.data() // 上下文是根组件的data，如果需要更新的话，上下文需要是Proxy响应式的，要做代理操作
+            const vnode = rootComponent.render.call(ctx) // 访问data中的counter，this需要指定上下文，即ctx
+            // 虚拟节点转为真实节点
+            const parent = querySelector(container) // 查找数组
+            // 存在递归操作
+            const child = createElement(vnode.tag) // 创建孩子
+            if(typeof vnode.children === 'string') { // 只有一个孩子的情况
+                child.textContent = vnode.children
+            } else {
+                // 有多个孩子，需要递归操作
+            }
+            insert(child, parent) // 将孩子加入到parent中
+        }
+        return {
+            render,
+            createApp: createAppAPI(render) // 接收render方法
+        }
+    }
+
+    const renderer = createRenderer({
+        querySelector(sel) {
+            return document.querySelector(sel)
+        },
+        createElement(tag) {
+            return document.createElement(tag)
+        },
+        insert(child, parent) { // 可插入也可追加
+            parent.appendChild(child)
+        }
+    })
+
+    const Vue = {
+        // 创建一个app方法，返回即构建一个app实例给Vue
+        // 实例通过渲染器获得
+        createApp(options) {
+            return renderer.createApp(options)
+        }
+    }
+
+    Vue.createApp({
+        data() {
+            return {
+                counter: 0
+            }
+        },
+        render() {
+            return {
+                tag: 'p',
+                children: this.counter + '' // 如果children是字符串，则表示p标签只有一个文本，如果是数组，则p标签肯定有很多孩子
+            }
+        }
+    }).mount('#app')
+</script>
